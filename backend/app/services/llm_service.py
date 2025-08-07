@@ -4,13 +4,31 @@ LLM service for handling AI model interactions.
 from typing import List
 from app.models.employee import AIEmployee
 from app.models.message import Message
+from app.models.meeting import Meeting
 from app.config import settings
+from app.services.crew_service import crew_service
 
 class LLMService:
     def __init__(self):
         self.openai_key = settings.OPENAI_API_KEY
         self.anthropic_key = settings.ANTHROPIC_API_KEY
     
+    async def generate_crew_response(self, meeting: Meeting, employees: List[AIEmployee], new_message: Message) -> str:
+        """Generate a response from the crew based on the new message."""
+        if not employees or not new_message:
+            raise ValueError("Employees and new message must be provided to generate a response")
+        
+        # Create a crew with the given employees
+        crew = crew_service.create_crew(employees)
+        
+        # Create a task for the crew based on the new message
+        task = crew_service.create_task(meeting, new_message)
+        
+        # Kick off the crew with the task
+        crew_output = crew_service.kickoff_crew(crew, task)
+        
+        return crew_output
+
     async def generate_response(self, employee: AIEmployee, conversation_history: List[Message]) -> str:
         """Generate a response using the specified LLM provider based on the conversation history and new message."""
         try:

@@ -43,26 +43,30 @@ class MessageService:
         if not meeting:
             raise HTTPException(status_code=404, detail="Meeting not found")
 
-        employee = employee_repo.get_by_id(employee_id)
-        if not employee:
-            raise HTTPException(status_code=404, detail="Employee not found")
+        # employee = employee_repo.get_by_id(employee_id)
+        # if not employee:
+        #     raise HTTPException(status_code=404, detail="Employee not found")
+        # get list of employees in the meeting
+        employees = employee_repo.get_by_meeting_id(meeting_id)
+        if not employees:
+            raise HTTPException(status_code=404, detail="No employees found for this meeting")
 
-        conversation_history = message_repo.get_by_meeting_id(meeting_id)
+        conversation_history = message_repo.get_by_meeting_id(meeting_id)[-1]
 
         if not conversation_history:
             raise HTTPException(status_code=400, detail="No conversation history found for this meeting")
 
-        response_content = await llm_service.generate_response(employee, conversation_history)
+        response_content = await llm_service.generate_crew_response(meeting=meeting, employees=employees, new_message=conversation_history)
 
         # Create the response message
         message_data = MessageCreate(
             meeting_id=meeting_id,
             content=response_content,
             sender_type="employee",
-            sender_id=employee.id
+            sender_id=employee_id
         )
 
-        return message_repo.create(message_data, employee.name)
+        return message_repo.create(message_data, "Crew Response")
     
     @staticmethod
     def get_messages(meeting_id: str, db: Session) -> List[Message]:

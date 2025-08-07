@@ -38,6 +38,18 @@ class EmployeeRepository:
             and_(DBEmployee.id == employee_id, DBEmployee.is_active == True)
         ).first()
         return self._to_pydantic(db_employee) if db_employee else None
+    
+    def get_by_meeting_id(self, meeting_id: str) -> List[AIEmployee]:
+        """Get all employees associated with a meeting."""
+        db_meeting = self.db.query(DBMeeting).filter(
+            and_(DBMeeting.id == meeting_id, DBMeeting.is_active == True)
+        ).first()
+        if not db_meeting or not db_meeting.employee_ids:
+            return []
+        db_employees = self.db.query(DBEmployee).filter(
+            and_(DBEmployee.id.in_(db_meeting.employee_ids), DBEmployee.is_active == True)
+        ).all()
+        return [self._to_pydantic(emp) for emp in db_employees]
 
     def get_all(self) -> List[AIEmployee]:
         """Get all active employees."""
