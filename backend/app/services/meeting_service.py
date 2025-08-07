@@ -1,50 +1,41 @@
 """
 Meeting service for business logic related to meetings.
 """
-import uuid
-from datetime import datetime
 from typing import List
 from fastapi import HTTPException
+from sqlalchemy.orm import Session
 
 from app.models.meeting import Meeting, MeetingCreate
-from app.database.memory_store import meetings_db, messages_db, employees_db
+from app.database.repositories import MeetingRepository, EmployeeRepository
 
 class MeetingService:
     
     @staticmethod
-    def create_meeting(meeting_data: MeetingCreate) -> Meeting:
+    def create_meeting(meeting_data: MeetingCreate, db: Session) -> Meeting:
         """Create a new meeting."""
         # Validate that all employees exist
+        employee_repo = EmployeeRepository(db)
         for emp_id in meeting_data.employee_ids:
-            if emp_id not in employees_db:
+            if not employee_repo.get_by_id(emp_id):
                 raise HTTPException(status_code=400, detail=f"Employee {emp_id} not found")
         
-        meeting_id = str(uuid.uuid4())
-        new_meeting = Meeting(
-            id=meeting_id,
-            title=meeting_data.title,
-            description=meeting_data.description,
-            employee_ids=meeting_data.employee_ids,
-            created_at=datetime.now(),
-            is_active=True
-        )
-        
-        meetings_db[meeting_id] = new_meeting
-        messages_db[meeting_id] = []  # Initialize message history for the meeting
-        
-        return new_meeting
+        meeting_repo = MeetingRepository(db)
+        return meeting_repo.create(meeting_data)
     
     @staticmethod
-    def get_all_meetings() -> List[Meeting]:
+    def get_all_meetings(db: Session) -> List[Meeting]:
         """Get all meetings."""
-        return list(meetings_db.values())
+        meeting_repo = MeetingRepository(db)
+        return meeting_repo.get_all()
     
     @staticmethod
-    def get_meeting(meeting_id: str) -> Meeting:
+    def get_meeting(meeting_id: str, db: Session) -> Meeting:
         """Get a specific meeting by ID."""
-        if meeting_id not in meetings_db:
+        meeting_repo = MeetingRepository(db)
+        meeting = meeting_repo.get_by_id(meeting_id)
+        if not meeting:
             raise HTTPException(status_code=404, detail="Meeting not found")
-        return meetings_db[meeting_id]
+        return meeting
 
 # Global instance
 meeting_service = MeetingService()

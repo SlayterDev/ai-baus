@@ -14,6 +14,9 @@ class Settings:
     # CORS Configuration
     CORS_ORIGINS = ["http://localhost:3000"]
     
+    # Database Configuration
+    DATABASE_URL = os.getenv("DATABASE_URL", "postgresql://postgres:password@localhost:5432/ai_boss")
+    
     # LLM API Keys
     OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
     ANTHROPIC_API_KEY = os.getenv("ANTHROPIC_API_KEY")
